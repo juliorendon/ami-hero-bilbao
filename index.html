@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Ami Hero: Bilbao Tour</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: #080c14;
+            color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #app-frame {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 480px;
+            max-height: 920px;
+            background: #0f172a;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .shake {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-3px, 0, 0); }
+            20%, 80% { transform: translate3d(5px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-7px, 0, 0); }
+            40%, 60% { transform: translate3d(7px, 0, 0); }
+        }
+
+        .pulse-warning {
+            animation: pulse-red 0.8s infinite alternate;
+        }
+
+        @keyframes pulse-red {
+            0% { background-color: rgba(239, 68, 68, 0.3); }
+            100% { background-color: rgba(239, 68, 68, 0.9); }
+        }
+
+        @keyframes slideDown {
+            0% { transform: translate(-50%, -120%); opacity: 0; }
+            15% { transform: translate(-50%, 0); opacity: 1; }
+            85% { transform: translate(-50%, 0); opacity: 1; }
+            100% { transform: translate(-50%, -120%); opacity: 0; }
+        }
+
+        .banner-animate {
+            animation: slideDown 2.8s ease-in-out forwards;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-frame" class="rounded-none sm:rounded-3xl border-0 sm:border-4 border-slate-800">
+    
+    <!-- Top HUD Overlay -->
+    <div id="hud" class="absolute top-0 left-0 right-0 z-10 p-3 pointer-events-none flex flex-col gap-2">
+        <div class="flex items-center justify-between gap-2">
+            <!-- District Badge -->
+            <div class="glass-panel px-3 py-1.5 rounded-full flex items-center gap-2 border-emerald-500/30">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                <span id="hud-district" class="text-xs font-bold tracking-wide uppercase text-emerald-300">Guggenheim</span>
+            </div>
+
+            <!-- Sound & Pause Controls -->
+            <div class="pointer-events-auto flex items-center gap-2">
+                <button id="btn-audio" onclick="toggleAudio()" class="glass-panel p-2 rounded-full hover:bg-slate-700/50 active:scale-95 transition-all">
+                    <svg id="icon-sound-on" class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+                    <svg id="icon-sound-off" class="w-5 h-5 text-slate-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+                </button>
+                <button id="btn-pause" onclick="togglePause()" class="glass-panel p-2 rounded-full hover:bg-slate-700/50 active:scale-95 transition-all">
+                    <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Battery Bar & Score Container -->
+        <div class="glass-panel p-2.5 rounded-2xl flex flex-col gap-1.5">
+            <div class="flex items-center justify-between text-xs font-bold">
+                <div class="flex items-center gap-1.5 text-cyan-300">
+                    <svg class="w-4 h-4 fill-current animate-bounce" viewBox="0 0 24 24"><path d="M11 15H6l7-14v8h5l-7 14v-8z"/></svg>
+                    <span>BATTERY</span>
+                </div>
+                <span id="hud-battery-text" class="text-emerald-400">100%</span>
+            </div>
+
+            <div class="w-full bg-slate-900/80 h-3.5 rounded-full p-0.5 overflow-hidden border border-slate-700/50">
+                <div id="hud-battery-bar" class="h-full bg-gradient-to-r from-emerald-500 to-teal-300 rounded-full transition-all duration-200" style="width: 100%;"></div>
+            </div>
+
+            <div class="flex justify-between items-center pt-1 border-t border-slate-700/50 text-xs font-extrabold">
+                <div class="text-slate-300">SCORE: <span id="hud-score" class="text-white text-base">0</span></div>
+                <div class="text-amber-400">HIGH: <span id="hud-highscore" class="text-amber-300 text-base">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- On-Screen Horn Touch Button -->
+    <div class="absolute bottom-6 left-6 z-20">
+        <button id="btn-horn" onmousedown="triggerHorn()" ontouchstart="triggerHorn(event)" class="glass-panel p-4 rounded-full border-2 border-amber-400/50 active:scale-90 transition-transform shadow-lg shadow-amber-500/10">
+            <span class="text-2xl">📢</span>
+        </button>
+    </div>
+
+    <!-- Landmark Popup Notification Banner -->
+    <div id="landmark-banner" class="hidden absolute top-28 left-1/2 -translate-x-1/2 z-20 w-11/12 glass-panel border-2 border-emerald-400/60 rounded-2xl p-3 text-center shadow-2xl banner-animate pointer-events-none">
+        <div class="text-[10px] uppercase tracking-widest text-emerald-400 font-extrabold">Entering District</div>
+        <div id="banner-title" class="text-lg font-black text-white tracking-wide">Guggenheim Museum</div>
+    </div>
+
+    <!-- Canvas Game Container -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Start / Game Over Overlay Modal -->
+    <div id="modal-overlay" class="absolute inset-0 z-30 glass-panel flex flex-col items-center justify-between p-6 text-center">
+        <div class="mt-4 flex flex-col items-center">
+            <div class="relative mb-2">
+                <div class="absolute -inset-1 rounded-2xl bg-gradient-to-r from-emerald-400 to-cyan-500 blur-lg opacity-70 animate-pulse"></div>
+                <div class="relative px-6 py-3 bg-slate-900 rounded-2xl border border-emerald-500/50">
+                    <h1 class="text-3xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400">
+                        AMI HERO
+                    </h1>
+                    <span class="text-[10px] font-bold tracking-widest text-emerald-400/90 uppercase block -mt-1">BILBAO TOUR</span>
+                </div>
+            </div>
+            <p id="modal-subtitle" class="text-xs text-slate-300 mt-2 max-w-xs leading-relaxed">
+                Drive your 100% electric <strong class="text-teal-300">Citroën Ami</strong> through Bilbao! Watch out for lane-changing cars & collect EV battery power!
+            </p>
+        </div>
+
+        <div id="modal-card" class="w-full bg-slate-900/80 rounded-2xl p-3 border border-slate-700 text-left text-xs text-slate-300 space-y-2">
+            <div class="font-extrabold text-xs text-emerald-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <span>⚡ Game Features & Controls</span>
+            </div>
+            <div class="flex items-start gap-2">
+                <span class="p-1 bg-slate-800 rounded text-base">👉</span>
+                <p><strong>Steering:</strong> Touch or drag on screen / Arrow keys to steer your Ami.</p>
+            </div>
+            <div class="flex items-start gap-2">
+                <span class="p-1 bg-slate-800 rounded text-base">🚗</span>
+                <p><strong>AI Traffic:</strong> SUV & Truck drivers dynamically signal and switch lanes!</p>
+            </div>
+            <div class="flex items-start gap-2">
+                <span class="p-1 bg-slate-800 rounded text-base">🔋</span>
+                <p><strong>Battery Charging:</strong> Grab ⚡ icons to keep your Ami electric battery charged.</p>
+            </div>
+            <div class="flex items-start gap-2">
+                <span class="p-1 bg-slate-800 rounded text-base">🎵</span>
+                <p><strong>Synthesizer BGM:</strong> Retro chiptune driving music & custom engine audio.</p>
+            </div>
+        </div>
+
+        <div class="w-full mb-2 space-y-2">
+            <button id="btn-main" onclick="handleMainButtonClick()" class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black text-lg tracking-wider uppercase shadow-xl active:scale-95 transition-all">
+                START TOUR
+            </button>
+            <div id="share-container" class="hidden flex gap-2">
+                <button onclick="shareScore('instagram')" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all">
+                    <span>📷 Instagram / Social</span>
+                </button>
+                <button onclick="shareScore('facebook')" class="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all">
+                    <span>👍 Facebook / Copy</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+class SoundFX {
+    constructor() {
+        this.ctx = null;
+        this.muted = false;
+        this.humOsc = null;
+        this.humGain = null;
+        this.musicTimer = null;
+        this.musicStep = 0;
+        this.isPlayingMusic = false;
+        
+        // Upbeat Synthwave Melody Notes
+        this.melody = [
+            261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 261.63, 329.63,
+            293.66, 349.23, 440.00, 587.33, 440.00, 349.23, 293.66, 349.23,
+            220.00, 261.63, 329.63, 440.00, 329.63, 261.63, 220.00, 261.63,
+            196.00, 246.94, 293.66, 392.00, 293.66, 246.94, 196.00, 246.94
+        ];
+        this.bassline = [
+            130.81, 130.81, 130.81, 130.81, 146.83, 146.83, 146.83, 146.83,
+            110.00, 110.00, 110.00, 110.00, 97.99,  97.99,  97.99,  97.99
+        ];
+    }
+
+    init() {
+        if (this.ctx) return;
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioContext();
+        this.startHum();
+        this.startMusic();
+    }
+
+    startHum() {
+        if (!this.ctx || this.humOsc) return;
+        try {
+            this.humOsc = this.ctx.createOscillator();
+            this.humGain = this.ctx.createGain();
+            this.humOsc.type = 'sine';
+            this.humOsc.frequency.setValueAtTime(85, this.ctx.currentTime);
+            this.humGain.gain.setValueAtTime(0, this.ctx.currentTime);
+            this.humOsc.connect(this.humGain);
+            this.humGain.connect(this.ctx.destination);
+            this.humOsc.start();
+        } catch(e){}
+    }
+
+    updateHum(speedRatio, isMoving) {
+        if (!this.ctx || !this.humGain || this.muted) return;
+        if (!isMoving) {
+            this.humGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.1);
+            return;
+        }
+        const targetFreq = 95 + speedRatio * 180;
+        const targetGain = 0.04 + speedRatio * 0.03;
+        this.humOsc.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.1);
+        this.humGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.1);
+    }
+
+    startMusic() {
+        if (this.isPlayingMusic || !this.ctx) return;
+        this.isPlayingMusic = true;
+        this.scheduleMusicStep();
+    }
+
+    scheduleMusicStep() {
+        if (!this.isPlayingMusic) return;
+        
+        if (!this.muted && this.ctx && this.ctx.state === 'running') {
+            const now = this.ctx.currentTime;
+            
+            // Play Melody Note
+            const noteFreq = this.melody[this.musicStep % this.melody.length];
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(noteFreq, now);
+            gain.gain.setValueAtTime(0.04, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.14);
+
+            // Play Bassline Note
+            if (this.musicStep % 2 === 0) {
+                const bassFreq = this.bassline[Math.floor(this.musicStep / 2) % this.bassline.length];
+                const bassOsc = this.ctx.createOscillator();
+                const bassGain = this.ctx.createGain();
+                bassOsc.type = 'sawtooth';
+                bassOsc.frequency.setValueAtTime(bassFreq, now);
+                bassGain.gain.setValueAtTime(0.03, now);
+                bassGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                bassOsc.connect(bassGain);
+                bassGain.connect(this.ctx.destination);
+                bassOsc.start(now);
+                bassOsc.stop(now + 0.25);
+            }
+        }
+
+        this.musicStep++;
+        this.musicTimer = setTimeout(() => this.scheduleMusicStep(), 160);
+    }
+
+    playHorn() {
+        if (this.muted || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        
+        osc1.type = 'triangle';
+        osc2.type = 'triangle';
+        osc1.frequency.setValueAtTime(415, now);
+        osc2.frequency.setValueAtTime(520, now);
+        
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(this.ctx.destination);
+        
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.3);
+        osc2.stop(now + 0.3);
+    }
+
+    playCollect() {
+        if (this.muted || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.18);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.18);
+    }
+
+    playCharge() {
+        if (this.muted || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.28);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.28);
+    }
+
+    playWarning() {
+        if (this.muted || !this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(360, this.ctx.currentTime);
+        gain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.1);
+    }
+
+    playCrash() {
+        if (this.muted || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.45);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.45);
+    }
+}
+
+const audio = new SoundFX();
+
+function toggleAudio() {
+    audio.muted = !audio.muted;
+    document.getElementById('icon-sound-on').classList.toggle('hidden', audio.muted);
+    document.getElementById('icon-sound-off').classList.toggle('hidden', !audio.muted);
+    if (audio.muted && audio.humGain) {
+        audio.humGain.gain.setValueAtTime(0, audio.ctx.currentTime);
+    }
+}
+
+function triggerHorn(e) {
+    if (e) e.preventDefault();
+    audio.init();
+    audio.playHorn();
+}
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const appFrame = document.getElementById('app-frame');
+
+let width, height, roadWidth, roadX, laneWidth;
+let gameState = 'START';
+let score = 0;
+let highScore = parseInt(localStorage.getItem('ami_bilbao_highscore') || '0');
+let battery = 100;
+let baseSpeed = 4.8;
+let currentSpeed = baseSpeed;
+let roadOffset = 0;
+let frameCount = 0;
+let lastLowBatteryBeep = 0;
+
+const DISTRICTS = [
+    { name: "Abandoibarra", landmark: "Guggenheim Museum", minScore: 0 },
+    { name: "Puppy's Garden", landmark: "Flower Puppy", minScore: 160 },
+    { name: "Zubizuri Bridge", landmark: "White Arch Bridge", minScore: 360 },
+    { name: "La Salve Bridge", landmark: "Red Arch Bridge", minScore: 600 },
+    { name: "San Mamés Stadium", landmark: "The Cathedral", minScore: 880 },
+    { name: "Gran Vía Drive", landmark: "Metro Fosterito", minScore: 1200 },
+    { name: "Casco Viejo", landmark: "Seven Streets", minScore: 1600 }
+];
+let currentDistrictIdx = 0;
+
+const player = {
+    x: 0,
+    y: 0,
+    w: 48,
+    h: 72,
+    targetX: 0,
+    trail: []
+};
+
+let obstacles = [];
+let collectibles = [];
+let particles = [];
+let floatingTexts = [];
+
+let isTouching = false;
+let touchStartX = 0;
+let keys = { left: false, right: false };
+
+function resizeCanvas() {
+    width = canvas.width = appFrame.clientWidth;
+    height = canvas.height = appFrame.clientHeight;
+    
+    roadWidth = Math.min(width * 0.68, 300);
+    roadX = (width - roadWidth) / 2;
+    laneWidth = roadWidth / 3;
+
+    player.w = laneWidth * 0.58;
+    player.h = player.w * 1.5;
+    player.y = height - player.h - 45;
+    
+    if (gameState === 'START') {
+        player.x = width / 2 - player.w / 2;
+        player.targetX = player.x;
+    }
+}
+
+window.addEventListener('resize', resizeCanvas);
+
+canvas.addEventListener('touchstart', (e) => {
+    if (gameState !== 'PLAYING') return;
+    audio.init();
+    isTouching = true;
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const touchX = touch.clientX - rect.left;
+    touchStartX = touchX;
+    
+    if (touchX < roadX) {
+        player.targetX = Math.max(roadX + 4, player.x - laneWidth);
+    } else if (touchX > roadX + roadWidth) {
+        player.targetX = Math.min(roadX + roadWidth - player.w - 4, player.x + laneWidth);
+    }
+}, { passive: true });
+
+canvas.addEventListener('touchmove', (e) => {
+    if (gameState !== 'PLAYING' || !isTouching) return;
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const touchX = touch.clientX - rect.left;
+    const diff = touchX - touchStartX;
+    
+    player.targetX += diff * 1.25;
+    player.targetX = Math.max(roadX + 4, Math.min(roadX + roadWidth - player.w - 4, player.targetX));
+    touchStartX = touchX;
+}, { passive: true });
+
+canvas.addEventListener('touchend', () => { isTouching = false; });
+
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
+    if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+    if (e.key === ' ' && gameState === 'START') handleMainButtonClick();
+    if (e.key === 'h' || e.key === 'H') triggerHorn();
+});
+
+window.addEventListener('keyup', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+});
+
+function togglePause() {
+    if (gameState === 'PLAYING') {
+        gameState = 'PAUSED';
+        document.getElementById('modal-subtitle').innerText = "Game Paused";
+        document.getElementById('btn-main').innerText = "RESUME TOUR";
+        document.getElementById('share-container').classList.add('hidden');
+        document.getElementById('modal-overlay').classList.remove('hidden');
+    } else if (gameState === 'PAUSED') {
+        gameState = 'PLAYING';
+        document.getElementById('modal-overlay').classList.add('hidden');
+    }
+}
+
+function updateHUD() {
+    document.getElementById('hud-score').innerText = Math.floor(score);
+    document.getElementById('hud-highscore').innerText = highScore;
+    
+    const bBar = document.getElementById('hud-battery-bar');
+    const bText = document.getElementById('hud-battery-text');
+    const roundedBattery = Math.max(0, Math.ceil(battery));
+    
+    bBar.style.width = `${roundedBattery}%`;
+    bText.innerText = `${roundedBattery}%`;
+
+    if (battery < 25) {
+        bBar.className = "h-full bg-gradient-to-r from-red-600 to-amber-500 rounded-full transition-all duration-200 pulse-warning";
+        bText.className = "text-red-400 font-black animate-pulse";
+    } else {
+        bBar.className = "h-full bg-gradient-to-r from-emerald-500 to-teal-300 rounded-full transition-all duration-200";
+        bText.className = "text-emerald-400 font-bold";
+    }
+
+    document.getElementById('hud-district').innerText = DISTRICTS[currentDistrictIdx].name;
+}
+
+function triggerLandmarkBanner(name) {
+    const banner = document.getElementById('landmark-banner');
+    document.getElementById('banner-title').innerText = name;
+    banner.classList.remove('hidden');
+    void banner.offsetWidth;
+    banner.className = "absolute top-28 left-1/2 -translate-x-1/2 z-20 w-11/12 glass-panel border-2 border-emerald-400/60 rounded-2xl p-3 text-center shadow-2xl banner-animate pointer-events-none";
+}
+
+function handleMainButtonClick() {
+    audio.init();
+    if (gameState === 'START' || gameState === 'GAMEOVER') {
+        resetGame();
+        gameState = 'PLAYING';
+        document.getElementById('modal-overlay').classList.add('hidden');
+    } else if (gameState === 'PAUSED') {
+        gameState = 'PLAYING';
+        document.getElementById('modal-overlay').classList.add('hidden');
+    }
+}
+
+function resetGame() {
+    score = 0;
+    battery = 100;
+    currentSpeed = baseSpeed;
+    currentDistrictIdx = 0;
+    obstacles = [];
+    collectibles = [];
+    particles = [];
+    floatingTexts = [];
+    player.x = width / 2 - player.w / 2;
+    player.targetX = player.x;
+    player.trail = [];
+    frameCount = 0;
+    updateHUD();
+}
+
+function triggerGameOver(reason) {
+    gameState = 'GAMEOVER';
+    audio.playCrash();
+    
+    appFrame.classList.add('shake');
+    setTimeout(() => appFrame.classList.remove('shake'), 400);
+
+    if (score > highScore) {
+        highScore = Math.floor(score);
+        localStorage.setItem('ami_bilbao_highscore', highScore);
+    }
+
+    const modal = document.getElementById('modal-overlay');
+    const subtitle = document.getElementById('modal-subtitle');
+    const card = document.getElementById('modal-card');
+    const btn = document.getElementById('btn-main');
+    const shareContainer = document.getElementById('share-container');
+
+    subtitle.innerText = reason === 'battery' ? "🔋 Battery Depleted! You ran out of electric power." : "💥 Crash! Watch out for lane-changing drivers.";
+    
+    card.innerHTML = `
+        <div class="text-center py-2 space-y-1.5">
+            <div class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Ami Hero Tour Summary</div>
+            <div class="text-3xl font-black text-emerald-400">${Math.floor(score)} <span class="text-xs text-slate-300 font-bold">PTS</span></div>
+            <div class="text-xs text-amber-300 font-bold">Best Score: ${highScore}</div>
+            <div class="text-xs text-cyan-300">Zone Reached: <strong>${DISTRICTS[currentDistrictIdx].name}</strong> (${DISTRICTS[currentDistrictIdx].landmark})</div>
+        </div>
+    `;
+
+    btn.innerText = "TRY AGAIN";
+    shareContainer.classList.remove('hidden');
+    modal.classList.remove('hidden');
+}
+
+function shareScore(platform) {
+    // Generate Shareable Graphic on an offscreen Canvas
+    const shareCanvas = document.createElement('canvas');
+    shareCanvas.width = 600;
+    shareCanvas.height = 600;
+    const sCtx = shareCanvas.getContext('2d');
+
+    // Background Gradient
+    const bgGrad = sCtx.createLinearGradient(0, 0, 600, 600);
+    bgGrad.addColorStop(0, '#0f172a');
+    bgGrad.addColorStop(1, '#0284c7');
+    sCtx.fillStyle = bgGrad;
+    sCtx.fillRect(0, 0, 600, 600);
+
+    // Decorative Card Border
+    sCtx.strokeStyle = '#2dd4bf';
+    sCtx.lineWidth = 10;
+    sCtx.strokeRect(20, 20, 560, 560);
+
+    // Title
+    sCtx.fillStyle = '#38bdf8';
+    sCtx.font = '900 38px Outfit, sans-serif';
+    sCtx.textAlign = 'center';
+    sCtx.fillText('AMI HERO: BILBAO TOUR', 300, 90);
+
+    sCtx.fillStyle = '#34d399';
+    sCtx.font = 'bold 20px Outfit, sans-serif';
+    sCtx.fillText('CITROËN AMI ELECTRIC ADVENTURE', 300, 130);
+
+    // Score Banner
+    sCtx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+    sCtx.fillRect(80, 180, 440, 180);
+    sCtx.strokeStyle = '#38bdf8';
+    sCtx.lineWidth = 3;
+    sCtx.strokeRect(80, 180, 440, 180);
+
+    sCtx.fillStyle = '#94a3b8';
+    sCtx.font = 'bold 18px Outfit, sans-serif';
+    sCtx.fillText('FINAL TOUR SCORE', 300, 220);
+
+    sCtx.fillStyle = '#34d399';
+    sCtx.font = '900 64px Outfit, sans-serif';
+    sCtx.fillText(`${Math.floor(score)} PTS`, 300, 290);
+
+    sCtx.fillStyle = '#fbbf24';
+    sCtx.font = 'bold 20px Outfit, sans-serif';
+    sCtx.fillText(`District: ${DISTRICTS[currentDistrictIdx].name}`, 300, 335);
+
+    // Citroën Ami Graphic Badge
+    sCtx.fillStyle = '#e2e8f0';
+    sCtx.font = '18px Outfit, sans-serif';
+    sCtx.fillText('🚗 Driven in Bilbao, Basque Country 🇪🇸', 300, 420);
+
+    sCtx.fillStyle = '#38bdf8';
+    sCtx.font = 'bold 18px Outfit, sans-serif';
+    sCtx.fillText('Can you beat my electric Ami score?', 300, 470);
+
+    const shareText = `🚗⚡ I scored ${Math.floor(score)} pts driving the Citroën Ami Hero in Bilbao! Can you beat me?`;
+
+    // Try Native Mobile Web Share API
+    if (navigator.share && navigator.canShare) {
+        shareCanvas.toBlob((blob) => {
+            const file = new File([blob], 'ami-hero-score.png', { type: 'image/png' });
+            if (navigator.canShare({ files: [file] })) {
+                navigator.share({
+                    title: 'Ami Hero: Bilbao Tour Score',
+                    text: shareText,
+                    files: [file]
+                }).catch(() => {});
+                return;
+            }
+            fallbackShare(shareText);
+        });
+    } else {
+        fallbackShare(shareText);
+    }
+}
+
+function fallbackShare(text) {
+    if (navigator.clipboard) {
+        document.execCommand('copy');
+        navigator.clipboard.writeText(text);
+        alert("✨ Score summary copied to clipboard! Paste it on Instagram or Facebook!");
+    } else {
+        alert(text);
+    }
+}
+
+function spawnEntities() {
+    if (frameCount % Math.max(28, Math.floor(60 - currentSpeed * 2.5)) === 0) {
+        const lane = Math.floor(Math.random() * 3);
+        const laneX = roadX + lane * laneWidth + (laneWidth - player.w) / 2;
+        const rand = Math.random();
+
+        if (rand < 0.52) {
+            // Traffic Obstacle with Lane-Changing AI
+            const isVan = Math.random() < 0.35;
+            const willChangeLane = Math.random() < 0.45; // 45% chance driver switches lanes!
+            let targetLane = lane;
+            if (willChangeLane) {
+                targetLane = lane === 0 ? 1 : (lane === 2 ? 1 : (Math.random() < 0.5 ? 0 : 2));
+            }
+
+            obstacles.push({
+                x: laneX,
+                currentLane: lane,
+                targetLane: targetLane,
+                y: -player.h * 1.5,
+                w: player.w,
+                h: isVan ? player.h * 1.25 : player.h * 1.05,
+                type: isVan ? 'VAN' : 'SUV',
+                speed: isVan ? currentSpeed * 0.72 : currentSpeed * 0.85,
+                isChangingLane: false,
+                indicatorBlink: 0,
+                changeProgress: 0
+            });
+        } else if (rand < 0.88) {
+            // Collectibles & Batteries
+            const cTypeRand = Math.random();
+            let cType = 'PINTXO';
+            let icon = '🍢';
+            let points = 25;
+            let batteryBonus = 0;
+
+            if (cTypeRand < 0.35) {
+                cType = 'BATTERY';
+                icon = '⚡';
+                points = 10;
+                batteryBonus = 25;
+            } else if (cTypeRand < 0.55) {
+                cType = 'PUPPY';
+                icon = '🌸';
+                points = 45;
+            } else if (cTypeRand < 0.75) {
+                cType = 'GUGGENHEIM';
+                icon = '🏛️';
+                points = 55;
+            } else if (cTypeRand < 0.90) {
+                cType = 'METRO';
+                icon = '🚇';
+                points = 35;
+            }
+
+            collectibles.push({
+                x: laneX + (player.w - 32) / 2,
+                y: -40,
+                w: 32,
+                h: 32,
+                type: cType,
+                icon: icon,
+                points: points,
+                batteryBonus: batteryBonus
+            });
+        }
+    }
+}
+
+function createParticles(x, y, color, count = 8) {
+    for (let i = 0; i < count; i++) {
+        particles.push({
+            x: x,
+            y: y,
+            vx: (Math.random() - 0.5) * 6,
+            vy: (Math.random() - 0.5) * 6,
+            radius: Math.random() * 4 + 2,
+            color: color,
+            alpha: 1
+        });
+    }
+}
+
+function addFloatingText(text, x, y, color) {
+    floatingTexts.push({
+        text: text,
+        x: x,
+        y: y,
+        vy: -1.5,
+        alpha: 1,
+        color: color
+    });
+}
+
+function update() {
+    if (gameState !== 'PLAYING') return;
+
+    frameCount++;
+
+    currentSpeed = baseSpeed + (score / 220) * 0.4;
+    battery -= 0.045 + (currentSpeed * 0.005);
+
+    audio.updateHum((currentSpeed - baseSpeed) / 5, true);
+
+    if (battery <= 0) {
+        battery = 0;
+        triggerGameOver('battery');
+        return;
+    }
+
+    if (battery < 20 && frameCount - lastLowBatteryBeep > 60) {
+        audio.playWarning();
+        lastLowBatteryBeep = frameCount;
+    }
+
+    if (keys.left) player.targetX -= 7;
+    if (keys.right) player.targetX += 7;
+
+    player.x += (player.targetX - player.x) * 0.25;
+
+    const minX = roadX + 2;
+    const maxX = roadX + roadWidth - player.w - 2;
+    if (player.x < minX) { player.x = minX; player.targetX = minX; }
+    if (player.x > maxX) { player.x = maxX; player.targetX = maxX; }
+
+    if (frameCount % 3 === 0) {
+        player.trail.push({
+            x: player.x + player.w / 2,
+            y: player.y + player.h - 5,
+            alpha: 0.8,
+            radius: Math.random() * 3 + 2
+        });
+    }
+    player.trail.forEach((t, idx) => {
+        t.y += currentSpeed * 0.5;
+        t.alpha -= 0.05;
+        if (t.alpha <= 0) player.trail.splice(idx, 1);
+    });
+
+    roadOffset = (roadOffset + currentSpeed) % 40;
+
+    for (let i = DISTRICTS.length - 1; i >= 0; i--) {
+        if (score >= DISTRICTS[i].minScore && currentDistrictIdx < i) {
+            currentDistrictIdx = i;
+            triggerLandmarkBanner(DISTRICTS[i].landmark);
+            audio.playCollect();
+            break;
+        }
+    }
+
+    spawnEntities();
+
+    // Update AI Traffic & Lane Changing
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+        let o = obstacles[i];
+        o.y += o.speed || currentSpeed;
+
+        // Lane Changing AI Logic
+        if (o.currentLane !== o.targetLane && o.y > height * 0.15 && o.y < height * 0.65) {
+            o.isChangingLane = true;
+            o.indicatorBlink = (o.indicatorBlink + 1) % 20;
+
+            const targetX = roadX + o.targetLane * laneWidth + (laneWidth - o.w) / 2;
+            o.x += (targetX - o.x) * 0.08; // Smooth lane transition
+
+            if (Math.abs(o.x - targetX) < 2) {
+                o.x = targetX;
+                o.currentLane = o.targetLane;
+                o.isChangingLane = false;
+            }
+        }
+
+        // Collision Check
+        if (player.x < o.x + o.w * 0.82 &&
+            player.x + player.w * 0.82 > o.x &&
+            player.y < o.y + o.h * 0.82 &&
+            player.y + player.h * 0.82 > o.y) {
+            
+            createParticles(player.x + player.w/2, player.y + player.h/2, '#ef4444', 15);
+            triggerGameOver('crash');
+            return;
+        }
+
+        if (o.y > height + 50) obstacles.splice(i, 1);
+    }
+
+    // Update Collectibles
+    for (let i = collectibles.length - 1; i >= 0; i--) {
+        let c = collectibles[i];
+        c.y += currentSpeed;
+
+        if (player.x < c.x + c.w &&
+            player.x + player.w > c.x &&
+            player.y < c.y + c.h &&
+            player.y + player.h > c.y) {
+            
+            score += c.points;
+            if (c.batteryBonus > 0) {
+                battery = Math.min(100, battery + c.batteryBonus);
+                audio.playCharge();
+                createParticles(c.x, c.y, '#38bdf8', 12);
+                addFloatingText(`+${c.batteryBonus}% ⚡`, c.x, c.y, '#38bdf8');
+            } else {
+                audio.playCollect();
+                createParticles(c.x, c.y, '#10b981', 10);
+                addFloatingText(`+${c.points}`, c.x, c.y, '#34d399');
+            }
+
+            collectibles.splice(i, 1);
+            updateHUD();
+            continue;
+        }
+
+        if (c.y > height + 40) collectibles.splice(i, 1);
+    }
+
+    particles.forEach((p, idx) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.03;
+        if (p.alpha <= 0) particles.splice(idx, 1);
+    });
+
+    floatingTexts.forEach((ft, idx) => {
+        ft.y += ft.vy;
+        ft.alpha -= 0.02;
+        if (ft.alpha <= 0) floatingTexts.splice(idx, 1);
+    });
+
+    score += 0.08;
+    updateHUD();
+}
+
+function drawCitroenAmi(x, y, w, h) {
+    ctx.save();
+
+    ctx.shadowColor = '#38bdf8';
+    ctx.shadowBlur = battery < 20 ? 4 : 12;
+
+    // Ami Shell (Light Blue-Grey)
+    ctx.fillStyle = '#64748b';
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 10);
+    ctx.fill();
+
+    // Dark Cladding
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(x, y + h * 0.35, w, h * 0.3);
+    ctx.fillRect(x + 2, y, w - 4, 6);
+    ctx.fillRect(x + 2, y + h - 6, w - 4, 6);
+
+    // Front/Rear Glass
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.roundRect(x + w * 0.1, y + 8, w * 0.8, h * 0.28, 6);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.roundRect(x + w * 0.1, y + h * 0.65, w * 0.8, h * 0.25, 6);
+    ctx.fill();
+
+    // Teal Capsule Stripe
+    ctx.fillStyle = '#2dd4bf';
+    ctx.beginPath();
+    ctx.roundRect(x + 4, y + h * 0.42, w - 8, 5, 2);
+    ctx.fill();
+
+    // Wheels
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(x - 3, y + 8, 4, 14);
+    ctx.fillRect(x + w - 1, y + 8, 4, 14);
+    ctx.fillRect(x - 3, y + h - 22, 4, 14);
+    ctx.fillRect(x + w - 1, y + h - 22, 4, 14);
+
+    // Headlights
+    ctx.fillStyle = '#fef08a';
+    ctx.shadowColor = '#fef08a';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(x + 8, y + 4, 3.5, 0, Math.PI * 2);
+    ctx.arc(x + w - 8, y + 4, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Taillights
+    ctx.fillStyle = '#f43f5e';
+    ctx.shadowColor = '#f43f5e';
+    ctx.shadowBlur = 6;
+    ctx.fillRect(x + 6, y + h - 4, 6, 2.5);
+    ctx.fillRect(x + w - 12, y + h - 4, 6, 2.5);
+
+    ctx.restore();
+}
+
+function drawBilbaoLandmarks() {
+    const district = DISTRICTS[currentDistrictIdx];
+
+    // Ría del Nervión River
+    ctx.fillStyle = '#0284c7';
+    ctx.fillRect(0, 0, roadX * 0.45, height);
+
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 0.4;
+    for (let i = 0; i < height; i += 40) {
+        let yPos = (i + roadOffset) % height;
+        ctx.beginPath();
+        ctx.moveTo(5, yPos);
+        ctx.lineTo(roadX * 0.35, yPos + 10);
+        ctx.stroke();
+    }
+    ctx.globalAlpha = 1.0;
+
+    // Green Sidewalk / Promenade
+    ctx.fillStyle = '#059669';
+    ctx.fillRect(roadX * 0.45, 0, roadX * 0.55, height);
+    ctx.fillRect(roadX + roadWidth, 0, width - (roadX + roadWidth), height);
+
+    // Right Side Architectural Scenery
+    const rightX = roadX + roadWidth + 8;
+    ctx.save();
+    
+    if (district.landmark === 'Guggenheim Museum') {
+        ctx.fillStyle = '#94a3b8';
+        for (let y = -40; y < height; y += 90) {
+            let ly = (y + roadOffset * 0.5) % (height + 90) - 40;
+            ctx.beginPath();
+            ctx.moveTo(rightX + 10, ly);
+            ctx.lineTo(rightX + 45, ly + 20);
+            ctx.lineTo(rightX + 25, ly + 60);
+            ctx.lineTo(rightX, ly + 40);
+            ctx.closePath();
+            ctx.fill();
+        }
+    } else if (district.landmark === 'White Arch Bridge') {
+        ctx.strokeStyle = '#f8fafc';
+        ctx.lineWidth = 3;
+        for (let y = -60; y < height; y += 120) {
+            let ly = (y + roadOffset * 0.6) % (height + 120) - 60;
+            ctx.beginPath();
+            ctx.arc(rightX + 20, ly + 40, 35, 0, Math.PI);
+            ctx.stroke();
+        }
+    } else if (district.landmark === 'The Cathedral') {
+        ctx.fillStyle = '#dc2626';
+        for (let y = -30; y < height; y += 70) {
+            let ly = (y + roadOffset * 0.5) % (height + 70) - 30;
+            ctx.fillRect(rightX + 5, ly, 30, 40);
+        }
+    } else {
+        ctx.fillStyle = '#d97706';
+        for (let y = -50; y < height; y += 100) {
+            let ly = (y + roadOffset * 0.5) % (height + 100) - 50;
+            ctx.beginPath();
+            ctx.arc(rightX + 20, ly + 25, 18, Math.PI, 0);
+            ctx.fillRect(rightX + 2, ly + 25, 36, 35);
+            ctx.fill();
+        }
+    }
+    ctx.restore();
+}
+
+function draw() {
+    ctx.clearRect(0, 0, width, height);
+
+    drawBilbaoLandmarks();
+
+    // Road Surface
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(roadX, 0, roadWidth, height);
+
+    // Curb Stripes
+    const curbW = 5;
+    for (let y = -20; y < height; y += 20) {
+        let cy = (y + roadOffset) % (height + 20) - 20;
+        ctx.fillStyle = (Math.floor((y + roadOffset) / 20) % 2 === 0) ? '#ef4444' : '#f8fafc';
+        ctx.fillRect(roadX - curbW, cy, curbW, 20);
+        ctx.fillRect(roadX + roadWidth, cy, curbW, 20);
+    }
+
+    // Lane Dividers
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([18, 22]);
+    ctx.lineDashOffset = -roadOffset;
+
+    ctx.beginPath();
+    ctx.moveTo(roadX + laneWidth, 0);
+    ctx.lineTo(roadX + laneWidth, height);
+    ctx.moveTo(roadX + laneWidth * 2, 0);
+    ctx.lineTo(roadX + laneWidth * 2, height);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Player Trail
+    player.trail.forEach(t => {
+        ctx.fillStyle = `rgba(56, 189, 248, ${t.alpha})`;
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    // Traffic Hazards (with Lane-Change Indicators)
+    obstacles.forEach(o => {
+        ctx.save();
+        if (o.type === 'VAN') {
+            ctx.fillStyle = '#0284c7';
+            ctx.beginPath();
+            ctx.roundRect(o.x, o.y, o.w, o.h, 6);
+            ctx.fill();
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(o.x + 4, o.y + o.h * 0.15, o.w - 8, 14);
+        } else {
+            ctx.fillStyle = '#b91c1c';
+            ctx.beginPath();
+            ctx.roundRect(o.x, o.y, o.w, o.h, 6);
+            ctx.fill();
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(o.x + 4, o.y + o.h * 0.2, o.w - 8, o.h * 0.25);
+        }
+
+        // Blinking Turn Signal Indicator for Lane Changing
+        if (o.isChangingLane && o.indicatorBlink < 10) {
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowColor = '#fbbf24';
+            ctx.shadowBlur = 8;
+            if (o.targetLane > o.currentLane) {
+                ctx.fillRect(o.x + o.w - 2, o.y + o.h - 8, 5, 5); // Right blinker
+            } else {
+                ctx.fillRect(o.x - 3, o.y + o.h - 8, 5, 5); // Left blinker
+            }
+        }
+        ctx.restore();
+    });
+
+    // Collectibles
+    collectibles.forEach(c => {
+        ctx.save();
+        ctx.font = '26px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        if (c.type === 'BATTERY') {
+            ctx.shadowColor = '#38bdf8';
+            ctx.shadowBlur = 10;
+        }
+        ctx.fillText(c.icon, c.x + c.w / 2, c.y + c.h / 2);
+        ctx.restore();
+    });
+
+    // Player Car
+    drawCitroenAmi(player.x, player.y, player.w, player.h);
+
+    // Particles
+    particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+    });
+
+    // Floating Score Text
+    floatingTexts.forEach(ft => {
+        ctx.save();
+        ctx.font = 'bold 16px Outfit, sans-serif';
+        ctx.fillStyle = ft.color;
+        ctx.globalAlpha = ft.alpha;
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.restore();
+    });
+}
+
+function mainGameLoop() {
+    update();
+    draw();
+    requestAnimationFrame(mainGameLoop);
+}
+
+resizeCanvas();
+updateHUD();
+requestAnimationFrame(mainGameLoop);
+</script>
+</body>
+</html>
