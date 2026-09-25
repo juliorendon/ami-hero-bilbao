@@ -2,21 +2,11 @@
 
 "¿Velocidad máxima? 45 km/h. ¿Emoción? ¡Incalculable!"
 
-¡Bienvenido al repositorio oficial de The Ami Hero, el juego arcade definitivo donde el vehículo más icónico, lento y adorable de la ciudad se convierte en la estrella de una aventura épica sobre ruedas!
+¡Bienvenido al repositorio oficial de The Ami Hero, el juego arcade definitivo donde el vehículo más icónico y adorable de la ciudad se convierte en la estrella de una aventura épica sobre ruedas!
 
 🎮 ¿De qué va esta locura?
 
 ¿Quién dijo que necesitas un superdeportivo V8 para sentir la adrenalina? En The Ami Hero, te pones al volante del indomable Citroën Ami. Tu misión es simple pero desafiante: esquivar el caos urbano, sobrevivir a los imprevistos del tráfico y demostrar que los 8 caballos de potencia de este pequeño gigante de plástico pueden conquistar el mundo (o al menos llegar a la panadería antes de que cierren).
-
-🔥 Características Principales
-
-Física "Avanzada" (Modo Supervivencia): Experimenta la emoción de tomar una curva a unos vertiginosos 30 km/h sintiendo que estás a punto de despegar como un cohete de la NASA.
-
-Obstáculos Urbanos Realistas: Esprinta y esquiva patinetes locos, peatones distraídos con el móvil, carritos de supermercado rebeldes y baches legendarios.
-
-Potenciadores Legendarios: Desbloquea mejoras como el "Turbo Eco" (que te empuja hasta los 45 km/h legales) o el "Modo Enchufe Rápido" para recargar energía al instante.
-
-Pura Diversión en HTML5: Cero pantallas de carga eternas, sin descargas pesadas. ¡Ábrelo en tu navegador y empieza a rodar al instante desde cualquier dispositivo!
 
 🛠️ Tecnologías Utilizadas
 
@@ -31,7 +21,6 @@ CSS3: Estilos urbanos, modernos y con mucho estilo quadricycle chic.
 Clona este repositorio o descárgalo:
 
 git clone https://github.com/tu-usuario/the-ami-hero.git
-
 
 Abre el archivo index.html en tu navegador web favorito (¡Chrome, Firefox, Safari o el que uses en tu patinete!).
 
